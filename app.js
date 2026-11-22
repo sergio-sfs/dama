@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  const VERSION = '1.0.4';
+  const VERSION = '1.0.5';
   const ACCESS_HASH = 'dfa83d369a43b3cdd08b4bd294500ab7e3a3d6487ea5d8d42ad67df54848b00a';
   const E = window.DamaEngine, NET = window.DamaNet;
   const $ = s => document.querySelector(s);
@@ -15,7 +15,7 @@
   const LEVELS = [['Facile', { depth: 1, time: 200, noise: 260 }], ['Medio', { depth: 3, time: 600, noise: 40 }], ['Difficile', { depth: 6, time: 1200, noise: 0 }], ['Esperto', { depth: 10, time: 2500, noise: 0 }]];
   const SERIES = [['Partita secca', 1], ['Al meglio di 3', 2], ['Al meglio di 5', 3]];
 
-  const cfg = Object.assign({ name: '', theme: 0, hl: true, net: 'auto', level: 1, color: 'w', series: 0 }, LS.get('dama_cfg', {}));
+  const cfg = Object.assign({ name: '', theme: 0, hl: true, ts: 1, net: 'auto', level: 1, color: 'w', series: 0 }, LS.get('dama_cfg', {}));
   cfg.rules = Object.assign({}, E.defaultRules, cfg.rules || {});
   const saveCfg = () => LS.set('dama_cfg', cfg);
 
@@ -57,6 +57,23 @@
     LS.set('dama_save', { mode: G.mode, role: G.role, room: G.room, lvl: G.lvl, st: pack(G.st) });
   }
 
+  // ---------- dimensioni ----------
+  const TS = [['Piccolo', 0.85], ['Normale', 1], ['Grande', 1.2], ['Molto grande', 1.4]];
+  function fit() {
+    const root = document.documentElement;
+    root.style.setProperty('--ts', (TS[cfg.ts] || TS[1])[1]);
+    const g = $('#game'); if (g.classList.contains('hid')) return;
+    for (let n = 0; n < 2; n++) {
+      const cs = getComputedStyle(g);
+      let others = 0; [...g.children].forEach(c => { if (c.id !== 'board') others += c.offsetHeight; });
+      const avail = g.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - others - 6;
+      const s = Math.max(120, Math.min(window.innerWidth - 16, avail));
+      root.style.setProperty('--s', s + 'px');
+    }
+  }
+  window.addEventListener('resize', () => requestAnimationFrame(fit));
+  window.addEventListener('orientationchange', () => setTimeout(fit, 250));
+
   // ---------- schermo sempre acceso ----------
   let wl = null;
   async function wake(on) {
@@ -68,7 +85,7 @@
 
   // ---------- screens ----------
   function show(id) {
-    wake(id === '#game'); ['#home', '#game'].forEach(s => $(s).classList.toggle('hid', s !== id)); }
+    wake(id === '#game'); setTimeout(fit, 0); ['#home', '#game'].forEach(s => $(s).classList.toggle('hid', s !== id)); }
   function home() {
     if (G && G.net) { G.net.close(); }
     if (G && G.st && G.st.res && G.mode === 'cpu') LS.del('dama_save');
@@ -151,6 +168,7 @@
     const net = G.mode === 'online' ? ' · ' + (G.netOk ? '🟢 ' + G.netName : '🔴 offline') : '';
     $('#status').innerHTML = esc(s) + '<small>' + esc(ser + net) + '</small>' + (G.msg ? '<div class="hm">' + esc(G.msg) + '</div>' : '');
     $('#t_hint').classList.toggle('hid', G.mode !== 'cpu');
+    fit();
     $('#t_hint').classList.toggle('on', !!G.helpOn);
     $('#t_hint').textContent = G.helpOn ? '💡 Aiuto ON' : '💡 Aiuto';
     $('#t_undo').classList.toggle('hid', G.mode !== 'cpu');
@@ -379,6 +397,7 @@
     const cb = (k, t) => '<label class="ck"><input type="checkbox" data-r="' + k + '"' + (r[k] ? ' checked' : '') + '> ' + t + '</label>';
     modal('Impostazioni',
       '<label>Il tuo nome</label><input id="s_nm" value="' + esc(cfg.name) + '" maxlength="14">' +
+      '<label>Dimensione del testo (tutto si adatta)</label><div class="seg" id="s_ts">' + TS.map((t, i) => '<button data-v="' + i + '" class="' + (i === cfg.ts ? 'on' : '') + '">' + t[0] + '</button>').join('') + '</div>' +
       '<label>Scacchiera</label><div class="seg" id="s_th">' + THEMES.map((t, i) => '<button data-v="' + i + '" class="' + (i === cfg.theme ? 'on' : '') + '">' + t[2] + '</button>').join('') + '</div>' +
       '<label class="ck"><input type="checkbox" id="s_hl"' + (cfg.hl ? ' checked' : '') + '> Evidenzia i pezzi che devono prendere</label>' +
       '<label>Connessione online (fuori dal Wi‑Fi)</label><div class="seg" id="s_net">' + [['auto', 'Auto'], ['p2p', 'Diretto'], ['mqtt', 'MQTT'], ['ntfy', 'ntfy']].map(x => '<button data-v="' + x[0] + '" class="' + (cfg.net === x[0] ? 'on' : '') + '">' + x[1] + '</button>').join('') + '</div>' +
@@ -388,6 +407,7 @@
       [{ t: 'Fatto', cls: 'pri', cb: () => { cfg.name = $('#s_nm').value.trim(); cfg.hl = $('#s_hl').checked; cfg.rules.drawPlies = +$('#s_dr').value; saveCfg(); if (G && G.st) render(); } }],
       b => {
         b.querySelectorAll('input[data-r]').forEach(i => i.onchange = () => { cfg.rules[i.dataset.r] = i.checked; saveCfg(); });
+        b.querySelector('#s_ts').onclick = e => { const v = e.target.dataset.v; if (v === undefined) return; cfg.ts = +v; saveCfg(); b.querySelectorAll('#s_ts button').forEach(x => x.classList.toggle('on', x === e.target)); fit(); };
         b.querySelector('#s_th').onclick = e => { const v = e.target.dataset.v; if (v === undefined) return; cfg.theme = +v; saveCfg(); if (G && G.mode === 'online' && G.role === 'host' && G.st) { G.st.theme = +v; G.st.seq++; save(); sendState(); } b.querySelectorAll('#s_th button').forEach(x => x.classList.toggle('on', x === e.target)); if (G && G.st) render(); };
         b.querySelector('#s_net').onclick = e => { const v = e.target.dataset.v; if (!v) return; cfg.net = v; saveCfg(); b.querySelectorAll('#s_net button').forEach(x => x.classList.toggle('on', x === e.target)); };
       });
@@ -411,7 +431,7 @@
       if (document.visibilityState === 'visible' && G && G.net) { G.net.send({ t: 'hello', role: G.role, name: cfg.name || 'Giocatore', seq: G.st ? G.st.seq : -1, ts: Date.now() }); }
       if (window.__reg) window.__reg.update().catch(() => { });
     });
-    home();
+    fit(); home();
     if (/invito=1/.test(location.search)) { history.replaceState(null, '', location.pathname); joinDialog(); }
     if ('serviceWorker' in navigator) {
       let reloaded = false;
