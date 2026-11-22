@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  const VERSION = '1.0.2';
+  const VERSION = '1.0.3';
   const ACCESS_HASH = 'dfa83d369a43b3cdd08b4bd294500ab7e3a3d6487ea5d8d42ad67df54848b00a';
   const E = window.DamaEngine, NET = window.DamaNet;
   const $ = s => document.querySelector(s);
@@ -57,8 +57,18 @@
     LS.set('dama_save', { mode: G.mode, role: G.role, room: G.room, lvl: G.lvl, st: pack(G.st) });
   }
 
+  // ---------- schermo sempre acceso ----------
+  let wl = null;
+  async function wake(on) {
+    try {
+      if (on) { if (!wl && navigator.wakeLock) { wl = await navigator.wakeLock.request('screen'); wl.addEventListener('release', () => { wl = null; }); } }
+      else if (wl) { await wl.release(); wl = null; }
+    } catch (e) { wl = null; }
+  }
+
   // ---------- screens ----------
-  function show(id) { ['#home', '#game'].forEach(s => $(s).classList.toggle('hid', s !== id)); }
+  function show(id) {
+    wake(id === '#game'); ['#home', '#game'].forEach(s => $(s).classList.toggle('hid', s !== id)); }
   function home() {
     if (G && G.net) { G.net.close(); }
     if (G && G.st && G.st.res && G.mode === 'cpu') LS.del('dama_save');
@@ -396,6 +406,7 @@
     $('#t_hint').onclick = hint; $('#t_undo').onclick = undo; $('#t_res').onclick = resign;
     $('#t_menu').onclick = () => modal('Menu', '', [{ t: '⚙ Impostazioni', cb: settings }, { t: '📖 Guida', cb: guide }, { t: '🏠 Esci al menu principale', cb: home }, { t: 'Chiudi' }]);
     document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && G && G.st) wake(true);
       if (document.visibilityState === 'visible' && G && G.net && !G.net.alive()) G.net.reconnect();
       if (document.visibilityState === 'visible' && G && G.net) { G.net.send({ t: 'hello', role: G.role, name: cfg.name || 'Giocatore', seq: G.st ? G.st.seq : -1, ts: Date.now() }); }
       if (window.__reg) window.__reg.update().catch(() => { });
