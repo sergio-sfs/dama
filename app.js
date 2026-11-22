@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  const VERSION = '1.0.3';
+  const VERSION = '1.0.4';
   const ACCESS_HASH = 'dfa83d369a43b3cdd08b4bd294500ab7e3a3d6487ea5d8d42ad67df54848b00a';
   const E = window.DamaEngine, NET = window.DamaNet;
   const $ = s => document.querySelector(s);
@@ -46,7 +46,7 @@
 
   // ---------- state ----------
   function newState(rules, hostWhite, names, scores, need) {
-    return { gid: rid(), seq: 0, board: E.initial(), turn: 1, last: [], noProg: 0, res: null, rules, hostWhite, names, scores, need, ply: 0 };
+    return { gid: rid(), seq: 0, board: E.initial(), turn: 1, last: [], noProg: 0, res: null, rules, hostWhite, names, scores, need, ply: 0, theme: cfg.theme };
   }
   const colorFor = (role, st) => (role === 'host') === st.hostWhite ? 1 : -1;
   const oppName = () => G.mode === 'cpu' ? G.st.names[1] : (G.role === 'host' ? G.st.names[1] : G.st.names[0]) || 'Avversario';
@@ -118,7 +118,7 @@
   function render() {
     if (!G || !G.st) return;
     const st = G.st, flip = G.my === -1;
-    const th = THEMES[cfg.theme] || THEMES[0];
+    const th = THEMES[(G.mode === 'online' && st.theme !== undefined) ? st.theme : cfg.theme] || THEMES[0];
     const bd = $('#board'); bd.style.setProperty('--l', th[0]); bd.style.setProperty('--d', th[1]);
     G.moves = (st.turn === G.my && !st.res) ? E.moves(st.board, st.turn, st.rules) : [];
     const tgt = new Set(), selected = new Set(G.taps), must = new Set(), hintSq = new Set();
@@ -245,7 +245,7 @@
     if (G.mode === 'cpu') { startCpu({ st: G.st }); return; }
     const old = G.st, fin = old.res.final;
     const ns = newState(old.rules, !old.hostWhite, old.names, fin ? [0, 0] : old.scores.slice(), old.need);
-    ns.seq = old.seq + 1;
+    ns.seq = old.seq + 1; ns.theme = old.theme;
     G.st = ns; G.my = colorFor(G.role, ns); G.taps = []; G.cands = []; closeModal();
     afterChange(true);
   }
@@ -388,7 +388,7 @@
       [{ t: 'Fatto', cls: 'pri', cb: () => { cfg.name = $('#s_nm').value.trim(); cfg.hl = $('#s_hl').checked; cfg.rules.drawPlies = +$('#s_dr').value; saveCfg(); if (G && G.st) render(); } }],
       b => {
         b.querySelectorAll('input[data-r]').forEach(i => i.onchange = () => { cfg.rules[i.dataset.r] = i.checked; saveCfg(); });
-        b.querySelector('#s_th').onclick = e => { const v = e.target.dataset.v; if (v === undefined) return; cfg.theme = +v; saveCfg(); b.querySelectorAll('#s_th button').forEach(x => x.classList.toggle('on', x === e.target)); if (G && G.st) render(); };
+        b.querySelector('#s_th').onclick = e => { const v = e.target.dataset.v; if (v === undefined) return; cfg.theme = +v; saveCfg(); if (G && G.mode === 'online' && G.role === 'host' && G.st) { G.st.theme = +v; G.st.seq++; save(); sendState(); } b.querySelectorAll('#s_th button').forEach(x => x.classList.toggle('on', x === e.target)); if (G && G.st) render(); };
         b.querySelector('#s_net').onclick = e => { const v = e.target.dataset.v; if (!v) return; cfg.net = v; saveCfg(); b.querySelectorAll('#s_net button').forEach(x => x.classList.toggle('on', x === e.target)); };
       });
   }
