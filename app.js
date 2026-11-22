@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  const VERSION = '1.0.1';
+  const VERSION = '1.0.2';
   const ACCESS_HASH = 'dfa83d369a43b3cdd08b4bd294500ab7e3a3d6487ea5d8d42ad67df54848b00a';
   const E = window.DamaEngine, NET = window.DamaNet;
   const $ = s => document.querySelector(s);
@@ -15,7 +15,7 @@
   const LEVELS = [['Facile', { depth: 1, time: 200, noise: 260 }], ['Medio', { depth: 3, time: 600, noise: 40 }], ['Difficile', { depth: 6, time: 1200, noise: 0 }], ['Esperto', { depth: 10, time: 2500, noise: 0 }]];
   const SERIES = [['Partita secca', 1], ['Al meglio di 3', 2], ['Al meglio di 5', 3]];
 
-  const cfg = Object.assign({ name: '', theme: 0, hl: true, help: true, net: 'auto', level: 1, color: 'w', series: 0 }, LS.get('dama_cfg', {}));
+  const cfg = Object.assign({ name: '', theme: 0, hl: true, net: 'auto', level: 1, color: 'w', series: 0 }, LS.get('dama_cfg', {}));
   cfg.rules = Object.assign({}, E.defaultRules, cfg.rules || {});
   const saveCfg = () => LS.set('dama_cfg', cfg);
 
@@ -140,7 +140,9 @@
     const ser = st.need > 1 ? ' · Serie ' + myS + '–' + opS : '';
     const net = G.mode === 'online' ? ' · ' + (G.netOk ? '🟢 ' + G.netName : '🔴 offline') : '';
     $('#status').innerHTML = esc(s) + '<small>' + esc(ser + net) + '</small>' + (G.msg ? '<div class="hm">' + esc(G.msg) + '</div>' : '');
-    $('#t_hint').classList.toggle('hid', G.mode !== 'cpu' || !cfg.help);
+    $('#t_hint').classList.toggle('hid', G.mode !== 'cpu');
+    $('#t_hint').classList.toggle('on', !!G.helpOn);
+    $('#t_hint').textContent = G.helpOn ? '💡 Aiuto ON' : '💡 Aiuto';
     $('#t_undo').classList.toggle('hid', G.mode !== 'cpu');
   }
 
@@ -151,7 +153,7 @@
     if (G.busy || st.res) return;
     if (st.turn !== G.my) return;
     if (G.mode === 'online' && !st.names[1]) { toast('Attendi l\'avversario'); return; }
-    G.hint = null; G.msg = '';
+    if (!G.helpOn) { G.hint = null; G.msg = ''; }
     if (!G.taps.length) {
       const c = G.moves.filter(m => m.path[0] === i);
       if (!c.length) { if (st.board[i] * G.my > 0 && G.moves.length && G.moves[0].cap.length) toast('Presa obbligatoria'); return; }
@@ -197,6 +199,7 @@
     if (G.mode === 'online' && local) sendState();
     if (G.st.res) showEnd();
     else if (G.mode === 'cpu' && G.st.turn !== G.my) cpuTurn();
+    else if (G.mode === 'cpu' && G.helpOn) setTimeout(computeHint, 50);
   }
 
   function cpuTurn() {
@@ -242,20 +245,26 @@
     modal('Abbandonare la partita?', '', [{ t: 'Sì, abbandono', cls: 'pri', cb: () => { finish(-G.my, 'resa'); G.st.seq++; afterChange(true); } }, { t: 'No' }]);
   }
 
-  function hint() {
-    const st = G.st; if (G.mode !== 'cpu' || st.res || st.turn !== G.my || G.busy) return;
+  function computeHint() {
+    const st = G.st; if (!G.helpOn || G.mode !== 'cpu' || st.res || st.turn !== G.my || G.busy) return;
     const r = E.bestMove(st.board, G.my, st.rules, { depth: 8, time: 1500 });
     if (!r) return;
-    G.hint = r.move; G.taps = []; G.cands = [];
+    G.hint = r.move;
     const m = r.move, sc = r.score;
     G.msg = '💡 ' + E.notation(m) + (m.cap.length ? ' — presa di ' + m.cap.length : '') + (sc > 150 ? ' · sei in vantaggio' : sc < -150 ? ' · posizione difficile' : ' · partita equilibrata');
     render();
+  }
+  function hint() {
+    if (!G || G.mode !== 'cpu') return;
+    G.helpOn = !G.helpOn;
+    G.taps = []; G.cands = [];
+    if (G.helpOn) computeHint(); else { G.hint = null; G.msg = ''; render(); }
   }
 
   function undo() {
     if (G.mode !== 'cpu' || G.busy || !G.hist.length || G.st.res) return;
     G.st = unpack(G.hist.pop()); G.taps = []; G.cands = []; G.hint = null; G.msg = '';
-    save(); render();
+    save(); render(); if (G.helpOn) setTimeout(computeHint, 50);
   }
 
   // ---------- online ----------
@@ -361,13 +370,12 @@
     modal('Impostazioni',
       '<label>Il tuo nome</label><input id="s_nm" value="' + esc(cfg.name) + '" maxlength="14">' +
       '<label>Scacchiera</label><div class="seg" id="s_th">' + THEMES.map((t, i) => '<button data-v="' + i + '" class="' + (i === cfg.theme ? 'on' : '') + '">' + t[2] + '</button>').join('') + '</div>' +
-      '<label class="ck"><input type="checkbox" id="s_help"' + (cfg.help ? ' checked' : '') + '> Mostra il tasto Aiuto (solo contro il computer)</label>' +
       '<label class="ck"><input type="checkbox" id="s_hl"' + (cfg.hl ? ' checked' : '') + '> Evidenzia i pezzi che devono prendere</label>' +
       '<label>Connessione online (fuori dal Wi‑Fi)</label><div class="seg" id="s_net">' + [['auto', 'Auto'], ['p2p', 'Diretto'], ['mqtt', 'MQTT'], ['ntfy', 'ntfy']].map(x => '<button data-v="' + x[0] + '" class="' + (cfg.net === x[0] ? 'on' : '') + '">' + x[1] + '</button>').join('') + '</div>' +
       '<label>Varianti di regola</label>' + cb('mandatory', 'Presa obbligatoria') + cb('majority', 'Presa di maggioranza obbligatoria') + cb('pawnTakesKing', 'La pedina può mangiare la dama') +
       '<label>Patta per inattività</label><select id="s_dr">' + [[0, 'Mai'], [40, '20 mosse per lato'], [80, '40 mosse per lato'], [120, '60 mosse per lato']].map(x => '<option value="' + x[0] + '"' + (r.drawPlies === x[0] ? ' selected' : '') + '>' + x[1] + '</option>').join('') + '</select>' +
       '<p class="sm">Le varianti si applicano alle nuove partite. Online valgono quelle dell\'organizzatore. Versione ' + VERSION + '</p>',
-      [{ t: 'Fatto', cls: 'pri', cb: () => { cfg.name = $('#s_nm').value.trim(); cfg.hl = $('#s_hl').checked; cfg.help = $('#s_help').checked; cfg.rules.drawPlies = +$('#s_dr').value; saveCfg(); if (G && G.st) render(); } }],
+      [{ t: 'Fatto', cls: 'pri', cb: () => { cfg.name = $('#s_nm').value.trim(); cfg.hl = $('#s_hl').checked; cfg.rules.drawPlies = +$('#s_dr').value; saveCfg(); if (G && G.st) render(); } }],
       b => {
         b.querySelectorAll('input[data-r]').forEach(i => i.onchange = () => { cfg.rules[i.dataset.r] = i.checked; saveCfg(); });
         b.querySelector('#s_th').onclick = e => { const v = e.target.dataset.v; if (v === undefined) return; cfg.theme = +v; saveCfg(); b.querySelectorAll('#s_th button').forEach(x => x.classList.toggle('on', x === e.target)); if (G && G.st) render(); };
