@@ -1,4 +1,4 @@
-const V = 'dama-1.0.0';
+const V = 'dama-1.0.1';
 const FILES = ['./', 'index.html', 'engine.js', 'net.js', 'app.js', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 self.addEventListener('install', e => { self.skipWaiting(); e.waitUntil(caches.open(V).then(c => c.addAll(FILES).catch(() => { }))); });
 self.addEventListener('activate', e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== V).map(k => caches.delete(k)))).then(() => self.clients.claim())));
