@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  const VERSION = '1.0.6';
+  const VERSION = '1.0.7';
   const ACCESS_HASH = 'dfa83d369a43b3cdd08b4bd294500ab7e3a3d6487ea5d8d42ad67df54848b00a';
   const E = window.DamaEngine, NET = window.DamaNet;
   const $ = s => document.querySelector(s);
