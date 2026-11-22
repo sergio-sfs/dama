@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  const VERSION = '1.0.5';
+  const VERSION = '1.0.6';
   const ACCESS_HASH = 'dfa83d369a43b3cdd08b4bd294500ab7e3a3d6487ea5d8d42ad67df54848b00a';
   const E = window.DamaEngine, NET = window.DamaNet;
   const $ = s => document.querySelector(s);
@@ -119,7 +119,7 @@
   }
 
   function startCpu(prev) {
-    const w = prev ? !prev.st.hostWhite : (cfg.color === 'w' ? true : cfg.color === 'b' ? false : Math.random() < .5);
+    const w = prev ? (cfg.color === 'r' ? !prev.st.hostWhite : cfg.color === 'w') : (cfg.color === 'w' ? true : cfg.color === 'b' ? false : Math.random() < .5);
     let nm; do { nm = NAMES[Math.floor(Math.random() * NAMES.length)]; } while (prev && nm === prev.st.names[1]);
     const cont = prev && !prev.st.res.final;
     const need = cont ? prev.st.need : SERIES[cfg.series][1];
@@ -262,7 +262,7 @@
   function nextGame() {
     if (G.mode === 'cpu') { startCpu({ st: G.st }); return; }
     const old = G.st, fin = old.res.final;
-    const ns = newState(old.rules, !old.hostWhite, old.names, fin ? [0, 0] : old.scores.slice(), old.need);
+    const ns = newState(old.rules, cfg.color === 'r' ? !old.hostWhite : cfg.color === 'w', old.names, fin ? [0, 0] : old.scores.slice(), old.need);
     ns.seq = old.seq + 1; ns.theme = old.theme;
     G.st = ns; G.my = colorFor(G.role, ns); G.taps = []; G.cands = []; closeModal();
     afterChange(true);
