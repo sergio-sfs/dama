@@ -14,7 +14,7 @@
 <title>Dama</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
-html,body{margin:0;height:100%;background:#14281d;color:#f4f1e8;font-family:-apple-system,system-ui,sans-serif;overflow:hidden}
+html,body{margin:0;height:100%;background:#14281d radial-gradient(ellipse at 50% 40%,#21503a 0,#14281d 70%,#0b1710 100%);color:#f4f1e8;font-family:-apple-system,system-ui,sans-serif;overflow:hidden}
 .hid{display:none!important}
 .scr{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;padding:env(safe-area-inset-top) 12px env(safe-area-inset-bottom)}
 #home{justify-content:center;gap:10px}
@@ -31,19 +31,26 @@ button.pri{background:#c89b3c;color:#1a1308;font-weight:600}
 #status small{display:block;font-weight:400;font-size:calc(12px*var(--ts));opacity:.7}
 .hm{font-size:calc(13px*var(--ts));font-weight:400;color:#ffd77a;margin-top:2px}
 :root{--ts:1;--s:min(100vw - 16px,100dvh - 250px)}
-#board{width:var(--s);height:var(--s);display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);border:3px solid #0b1710;border-radius:4px;touch-action:manipulation}
-.sq{position:relative;display:flex;align-items:center;justify-content:center;background:var(--l)}
-.sq.d{background:var(--d)}
+#board{width:var(--s);height:var(--s);display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);border:9px solid;border-image:linear-gradient(135deg,#8a5d33,#4d2f16 45%,#7d5230 70%,#3f2610) 1;box-shadow:0 0 0 2px #1c1109,0 10px 22px rgba(0,0,0,.6),inset 0 0 10px rgba(0,0,0,.55);touch-action:manipulation}
+.sq{position:relative;display:flex;align-items:center;justify-content:center;background:repeating-linear-gradient(92deg,rgba(255,255,255,.07) 0 1px,rgba(0,0,0,.035) 1px 3px,transparent 3px 7px),linear-gradient(135deg,rgba(255,255,255,.16),rgba(0,0,0,.06)),var(--l)}
+.sq.d{background:repeating-linear-gradient(92deg,rgba(255,255,255,.06) 0 1px,rgba(0,0,0,.06) 1px 3px,transparent 3px 7px),linear-gradient(135deg,rgba(255,255,255,.1),rgba(0,0,0,.14)),var(--d);box-shadow:inset 0 0 7px rgba(0,0,0,.28)}
 .sq.last{box-shadow:inset 0 0 0 100px rgba(255,235,59,.28)}
 .sq.sel{box-shadow:inset 0 0 0 3px #ffeb3b}
 .sq.must{animation:pu 1.2s infinite}
 @keyframes pu{50%{box-shadow:inset 0 0 0 3px rgba(255,80,60,.9)}}
 .sq.tgt::after{content:"";position:absolute;width:30%;height:30%;border-radius:50%;background:rgba(255,235,59,.85)}
 .sq.hint{box-shadow:inset 0 0 0 4px #4fc3f7}
-.pc{width:82%;height:82%;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:calc(var(--s)/16);box-shadow:0 2px 3px rgba(0,0,0,.5)}
-.pc.w{background:radial-gradient(circle at 35% 30%,#fff,#d8d2c2 70%);border:2px solid #9a9380;color:#a07a14}
-.pc.b{background:radial-gradient(circle at 35% 30%,#555,#161616 70%);border:2px solid #000;color:#e8b83a}
-.pc.k{box-shadow:0 0 0 2px #e8b83a,0 2px 3px rgba(0,0,0,.5)}
+.pc{position:relative;width:80%;height:80%;border-radius:50%;font-size:0;box-shadow:0 3px 0 var(--e),0 6px 7px rgba(0,0,0,.55);transform:translateY(-2px)}
+.pc::before{content:"";position:absolute;inset:11%;border-radius:50%;box-shadow:inset 0 2px 3px rgba(0,0,0,.35),0 1px 1px rgba(255,255,255,.35)}
+.pc::after{content:"";position:absolute;inset:27%;border-radius:50%;box-shadow:inset 0 1px 2px rgba(0,0,0,.3),0 1px 1px rgba(255,255,255,.25)}
+.pc.w{--e:#8d8260;background:radial-gradient(circle at 34% 26%,#fffef8 0,#f1e9d3 30%,#d3c6a4 72%,#b3a373 100%)}
+.pc.b{--e:#000;background:radial-gradient(circle at 34% 26%,#7a7a7a 0,#3a3a3a 32%,#161616 75%,#050505 100%)}
+.pc.b::before{box-shadow:inset 0 2px 3px rgba(0,0,0,.7),0 1px 1px rgba(255,255,255,.18)}
+.pc.b::after{box-shadow:inset 0 1px 2px rgba(0,0,0,.6),0 1px 1px rgba(255,255,255,.14)}
+.pc.k{box-shadow:0 3px 0 var(--e),0 6px 0 var(--e),0 9px 8px rgba(0,0,0,.55);transform:translateY(-5px)}
+.pc.k::after{inset:24%;border-radius:0;box-shadow:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23ffe28a'/%3E%3Cstop offset='1' stop-color='%23b8860b'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M3 18 2 7l5.5 5L12 4l4.5 8L22 7l-1 11z' fill='url(%23g)' stroke='%237a5a08' stroke-width='1' stroke-linejoin='round'/%3E%3Crect x='3' y='19' width='18' height='2.4' rx='1' fill='url(%23g)' stroke='%237a5a08' stroke-width='.8'/%3E%3C/svg%3E") center/contain no-repeat}
+.sq.last .pc{animation:dr .25s ease-out}
+@keyframes dr{from{transform:translateY(-14px) scale(1.06);opacity:.6}}
 #tools{display:flex;gap:6px;width:var(--s)}
 #tools button.on{background:#c89b3c;color:#1a1308}
 #tools button{flex:1;font-size:calc(14px*var(--ts));padding:10px 2px}
